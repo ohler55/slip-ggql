@@ -41,7 +41,6 @@ func (caller initCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object 
 	if 0 < len(args) {
 		args = args[0].(slip.List)
 	}
-	obj.Let("base", "/")
 	for i := 0; i < len(args); i++ {
 		key, _ := args[i].(slip.Symbol)
 		i++
