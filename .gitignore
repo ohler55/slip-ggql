@@ -3,5 +3,5 @@
 *.dll
 *.so
 *.dylib
-
 *.out
+editor.log

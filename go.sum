@@ -1,6 +1,4 @@
-github.com/ohler55/ojg v1.18.3 h1:bYRaPHJIxKKTvfckSs6gaSd3vpDjldqcLw287M5XBdM=
-github.com/ohler55/ojg v1.18.3/go.mod h1:uHcD1ErbErC27Zhb5Df2jUjbseLLcmOCo6oxSr3jZxo=
-github.com/ohler55/slip v0.5.0 h1:aDnBZD9UpIIwSjQ47vAuBnViZ7RVdK7ioR1UfdnkTyw=
-github.com/ohler55/slip v0.5.0/go.mod h1:CWLTdWg7I4EuMRSmpZc08VbXVdxQFs/dFSLR8LwOmNA=
+github.com/ohler55/ojg v1.18.5 h1:tzn5LJtkSyXowCo8SlGieU0zEc7WF4143Ri9MYlQy7Q=
+github.com/ohler55/ojg v1.18.5/go.mod h1:uHcD1ErbErC27Zhb5Df2jUjbseLLcmOCo6oxSr3jZxo=
 golang.org/x/text v0.4.0 h1:BrVqGRd7+k1DiOgtnFvAkoQEWQvBc25ouMJM6429SFg=
 golang.org/x/text v0.4.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=

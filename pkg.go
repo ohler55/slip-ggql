@@ -11,7 +11,7 @@ var (
 	Pkg = slip.Package{
 		Name:      "ggql",
 		Nicknames: []string{},
-		Doc:       "Graphql package for slip.",
+		Doc:       "GraphQL package for slip.",
 		Lambdas:   map[string]*slip.Lambda{},
 		Funcs:     map[string]*slip.FuncInfo{},
 		PreSet:    slip.DefaultPreSet,

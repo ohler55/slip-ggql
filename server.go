@@ -3,8 +3,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"net/http"
+	"time"
 
 	"github.com/ohler55/slip"
 	"github.com/ohler55/slip/pkg/flavors"
@@ -13,20 +15,26 @@ import (
 var serverFlavor *flavors.Flavor
 
 func init() {
-	serverFlavor = flavors.DefFlavor("ggql-server-flavor", map[string]slip.Object{}, nil,
+	serverFlavor = flavors.DefFlavor("ggql-server-flavor",
+		map[string]slip.Object{
+			"port":            nil,
+			"base":            nil,
+			"root":            nil,
+			"asset-directory": nil,
+		},
+		nil,
 		slip.List{
 			slip.List{
 				slip.Symbol(":documentation"),
 				slip.String(`TBD`),
 			},
-			slip.List{
-				slip.Symbol(":init-keywords"),
-				slip.Symbol(":port"),
-				slip.Symbol(":base"),
-			},
+			slip.Symbol(":inittable-instance-variables"),
+			slip.Symbol(":gettable-instance-variables"),
+			slip.Symbol(":settable-instance-variables"),
 		},
 	)
-	// serverFlavor.DefMethod(":init", "", initCaller(true))
+	serverFlavor.DefMethod(":start", "", startCaller(true))
+	serverFlavor.DefMethod(":stop", "", stopCaller(true))
 }
 
 // ServerFlavor returns the ggql-server-flavor.
@@ -34,44 +42,67 @@ func ServerFlavor() *flavors.Flavor {
 	return serverFlavor
 }
 
-type initCaller bool
+type startCaller bool
 
-func (caller initCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
 	obj := s.Get("self").(*flavors.Instance)
-	if 0 < len(args) {
-		args = args[0].(slip.List)
+	var port int
+	if po, ok := obj.Get(slip.Symbol("port")).(slip.Fixnum); ok {
+		port = int(po)
+	} else {
+		panic(fmt.Sprintf("port must be a fixnum not %s", obj.Get(slip.Symbol("port"))))
 	}
-	for i := 0; i < len(args); i++ {
-		key, _ := args[i].(slip.Symbol)
-		i++
-		if len(args) <= i {
-			panic(fmt.Sprintf("ggql-server-flavor :init method expects zero or key/value pairs but received %d.",
-				len(args)))
+	mux := http.NewServeMux()
+	// TBD add for /graphql
+	// TBD include base
+	if assetDir := obj.Get(slip.Symbol("asset-directory")); assetDir != nil {
+		if dir, ok := assetDir.(slip.String); ok {
+			mux.Handle("/", http.FileServer(http.Dir(string(dir))))
+		} else {
+			panic(fmt.Sprintf("asset-directory must be a string not %s", assetDir))
 		}
-		value := args[i]
-		switch {
-		case strings.EqualFold(":port", string(key)):
-			if _, ok := value.(slip.Fixnum); !ok {
-				panic(fmt.Sprintf("ggql-server-flavor :init method keyword :port expected a fixnum not %s.",
-					value))
-			}
-			obj.Let("port", value)
-		case strings.EqualFold(":base", string(key)):
-			if _, ok := value.(slip.Fixnum); !ok {
-				panic(fmt.Sprintf("ggql-server-flavor :init method keyword :base expected a string not %s.",
-					value))
-			}
-			obj.Let("base", value)
-		}
+	}
+	server := http.Server{
+		Addr:           fmt.Sprintf(":%d", port),
+		Handler:        mux,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	obj.Any = &server
+	go func() { _ = server.ListenAndServe() }()
+
+	/*
+		TBD
+			http.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+				handleGraphQL(w, r, root)
+			})
+	*/
+
+	return nil
+}
+
+func (caller startCaller) Docs() string {
+	return `__:start__
+
+TBD.
+`
+}
+
+type stopCaller bool
+
+func (caller stopCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+	obj := s.Get("self").(*flavors.Instance)
+	if obj.Any != nil {
+		server := obj.Any.(*http.Server)
+		server.Shutdown(context.Background())
 	}
 	return nil
 }
 
-func (caller initCaller) Docs() string {
-	return `__:init__ &key _port_ _base_
-   _:port_ sets the port to listen for connections on.
-   _:base_ sets the base for GraphQL request. The default is an empty path.
+func (caller stopCaller) Docs() string {
+	return `__:stop__
 
-Sets the initial value when _make-instance_ is called.
+TBD.
 `
 }
