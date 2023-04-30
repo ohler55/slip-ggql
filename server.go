@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,12 +17,14 @@ import (
 	"github.com/ohler55/ojg/pretty"
 	"github.com/ohler55/slip"
 	"github.com/ohler55/slip/pkg/flavors"
+	"github.com/uhn/ggql/pkg/ggql"
 )
 
 type serverWrap struct {
 	server   *http.Server
 	mux      *http.ServeMux
 	out      io.Writer
+	root     *ggql.Root
 	mu       sync.Mutex
 	trace    bool
 	detailed bool
@@ -35,6 +39,12 @@ func init() {
 			"base":            nil,
 			"root":            nil,
 			"asset-directory": nil,
+			"schema-instance": nil,
+			"schema-files":    nil,
+			// TBD schema instance
+			// TBD graphql file or directory (list of)
+			// TBD if set while running then make a new root
+			//     maybe use after set for both
 		},
 		nil,
 		slip.List{
@@ -52,9 +62,6 @@ func init() {
 	serverFlavor.DefMethod(":stop", "", stopCaller(true))
 	serverFlavor.DefMethod(":activep", "", activepCaller(true))
 	serverFlavor.DefMethod(":trace", "", traceCaller(true))
-	// TBD trace (state &optional stream) - print request and response
-	//   state can be nil for off, t for on and :detailed for more
-
 }
 
 // ServerFlavor returns the ggql-server-flavor.
@@ -89,8 +96,29 @@ func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 	if sw.server != nil {
 		return nil
 	}
+	if sw.root == nil {
+		var (
+			top *flavors.Instance
+			ok  bool
+		)
+		if top, ok = obj.Get(slip.Symbol("schema-instance")).(*flavors.Instance); !ok {
+			panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s", obj.Get(slip.Symbol("schema-instance"))))
+		}
+		sw.makeRoot(top, obj.Get(slip.Symbol("schema-files")))
+	}
 	sw.mux = http.NewServeMux()
-	// TBD base/graphql
+	path := "/graphql"
+	base := obj.Get(slip.Symbol("base"))
+	if base != nil {
+		if ps, ok := base.(slip.String); ok {
+			path = string(ps)
+		} else {
+			panic(fmt.Sprintf("base must be a string or nil not %s", obj.Get(slip.Symbol("base"))))
+		}
+	}
+	sw.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		sw.handleGraphQL(w, r)
+	})
 	if assetDir := obj.Get(slip.Symbol("asset-directory")); assetDir != nil {
 		if dir, ok := assetDir.(slip.String); ok {
 			sw.mux.Handle("/", http.FileServer(http.Dir(string(dir))))
@@ -106,13 +134,6 @@ func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 		MaxHeaderBytes: 1 << 20,
 	}
 	go func() { _ = sw.server.ListenAndServe() }()
-
-	/*
-		TBD
-			http.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
-				handleGraphQL(w, r, root)
-			})
-	*/
 
 	return nil
 }
@@ -231,6 +252,9 @@ func (rt *responseTracer) WriteHeader(status int) {
 
 // ServeHTTP handles an HTTP request.
 func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	// TBD handle panics
+
 	if !sw.trace {
 		sw.mux.ServeHTTP(w, r)
 		return
@@ -258,4 +282,110 @@ func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(tw, "headers: %s\n", pretty.SEN(w.Header()))
 		fmt.Fprintf(tw, "%s\n", rt.sent)
 	}
+}
+
+func (sw *serverWrap) makeRoot(top *flavors.Instance, files slip.Object) {
+	ggql.Sort = true
+	sw.root = ggql.NewRoot(top)
+	sw.root.AnyResolver = sw
+	var sdl []byte
+	switch tf := files.(type) {
+	case slip.String:
+		// TBD add load path
+		if content, err := ioutil.ReadFile(string(tf)); err == nil {
+			sdl = append(sdl, content...)
+		} else {
+			fmt.Printf("*** %s\n", err)
+		}
+	case slip.List:
+		// TBD
+	default:
+		// TBD panic
+	}
+	if err := sw.root.Parse(sdl); err != nil {
+		panic(err)
+	}
+}
+
+func (sw *serverWrap) handleGraphQL(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "*")
+	w.Header().Set("Access-Control-Max-Age", "172800")
+
+	var result map[string]interface{}
+
+	switch r.Method {
+	case "GET":
+		result = sw.root.ResolveString(r.URL.Query().Get("query"), "", nil)
+	case "POST":
+		defer func() { _ = r.Body.Close() }()
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(400)
+			_, _ = w.Write([]byte(err.Error()))
+			return
+		}
+		result = sw.root.ResolveBytes(body, "", nil)
+	}
+	indent := -1
+	if i, err := strconv.Atoi(r.URL.Query().Get("indent")); err == nil {
+		indent = i
+	}
+	_ = ggql.WriteJSONValue(w, result, indent)
+}
+
+// Resolve the field into a method call.
+func (sw *serverWrap) Resolve(obj any, field *ggql.Field, args map[string]any) (result any, err error) {
+	switch to := obj.(type) {
+	case *flavors.Instance:
+		// TBD build args
+		// TBD convert result?
+		result = to.Receive(":"+field.Name, slip.List{}, 0)
+	case map[string]any:
+		result = to[field.Name]
+	default:
+		fmt.Printf("*** resolved with %T %v\n", obj, obj)
+	}
+	switch tr := result.(type) {
+	case *flavors.Instance, nil:
+		// ok
+	case slip.Object:
+		result = slip.Simplify(tr)
+	}
+	return
+}
+
+// Len returns the length of the list.
+func (sw *serverWrap) Len(list any) int {
+	switch tlist := list.(type) {
+	case []any:
+		return len(tlist)
+	case []*flavors.Instance:
+		return len(tlist)
+	}
+	return 0
+}
+
+// Nth returns the nth element in a list.
+func (sw *serverWrap) Nth(list any, i int) (result any, err error) {
+	if i < 0 {
+		return 0, fmt.Errorf("index must be >= 0, not %d", i)
+	}
+	switch tlist := list.(type) {
+	case []any:
+		if len(tlist) <= i {
+			return 0, fmt.Errorf("index must be less than the list length, %d > len %d", i, len(tlist))
+		}
+		return tlist[i], nil
+	case []*flavors.Instance:
+		if len(tlist) <= i {
+			return 0, fmt.Errorf("index must be less than the list length, %d > len %d", i, len(tlist))
+		}
+		return tlist[i], nil
+	}
+	return 0, fmt.Errorf("expected a []any or []*flavors.Instance, not a %T", list)
 }
