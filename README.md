@@ -4,6 +4,10 @@ Graphql for slip
 
 -------------
 
+- handle input args of map and list
+ - convert to bag
+
+
  - ggql package (slip-ggql repo)
   - short cut instead of gi http package
   - no permissions or minimal if easy to do

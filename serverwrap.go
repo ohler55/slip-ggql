@@ -150,13 +150,11 @@ top:
 		method := fmt.Sprintf(":%s", strings.ReplaceAll(field.Name, "_", "-"))
 		switch {
 		case 0 < len(args):
-			// TBD
-			// instance with call with scope
-			//  lambda needs to support it also ScopedCall(ss *Scope, depth int) Object [ClosureCall or BoundCall)
-			//  or maybe just Forms() List that can then be evaled
-			//
-			//
-			// result = to.Receive(method, margs, 0)
+			s := slip.NewScope()
+			for k, v := range args {
+				s.Vars[k] = coerceToLisp(v)
+			}
+			result = to.BoundReceive(method, s, 0)
 		case to.Flavor == bag.Flavor():
 			obj = to.Any
 			goto top
@@ -206,4 +204,25 @@ func (sw *serverWrap) Nth(list any, i int) (result any, err error) {
 		return tlist[i], nil
 	}
 	return 0, fmt.Errorf("expected a []any or []*flavors.Instance, not a %T", list)
+}
+
+func coerceToLisp(v any) (obj slip.Object) {
+	switch tv := v.(type) {
+	case nil:
+	case slip.Object:
+		obj = tv
+	case map[string]any:
+		inst := bag.Flavor().MakeInstance()
+		inst.Any = tv
+		obj = inst
+	case []any:
+		list := make(slip.List, len(tv))
+		for i, lv := range list {
+			list[i] = coerceToLisp(lv)
+		}
+		obj = list
+	default:
+		obj = slip.SimpleObject(tv)
+	}
+	return
 }
