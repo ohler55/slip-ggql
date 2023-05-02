@@ -20,20 +20,26 @@ func init() {
 		map[string]slip.Object{
 			"port":            nil,
 			"base":            nil,
-			"root":            nil,
 			"asset-directory": nil,
-			"schema-instance": nil,
-			"schema-files":    nil,
 		},
 		nil,
 		slip.List{
 			slip.List{
 				slip.Symbol(":documentation"),
-				slip.String(`TBD`),
+				slip.String(`Is a GraphQL server based on the GGql golang package. The resolvers for
+requests are instances of a flavor that responds to methods that match the fields in each GraphQL type.
+The root resolver will also resolve data held in a __bag__ instance.
+`),
 			},
 			slip.Symbol(":inittable-instance-variables"),
 			slip.Symbol(":gettable-instance-variables"),
 			slip.Symbol(":settable-instance-variables"),
+			slip.List{
+				slip.Symbol(":init-keywords"),
+				slip.Symbol(":schema-instance"),
+				slip.Symbol(":schema-files"),
+				slip.Symbol(":schema-stream"),
+			},
 		},
 	)
 	serverFlavor.DefMethod(":init", "", initCaller(true))
@@ -41,8 +47,10 @@ func init() {
 	serverFlavor.DefMethod(":stop", "", stopCaller(true))
 	serverFlavor.DefMethod(":activep", "", activepCaller(true))
 	serverFlavor.DefMethod(":trace", "", traceCaller(true))
-	serverFlavor.DefMethod(":set-schema-instance", ":after", rerootCaller(true))
-	serverFlavor.DefMethod(":set-schema-files", ":after", rerootCaller(true))
+	serverFlavor.DefMethod(":set-schema-instance", "", setSchemaInstanceCaller(true))
+	serverFlavor.DefMethod(":schema-instance", "", schemaInstanceCaller(true))
+	serverFlavor.DefMethod(":set-schema-files", "", setSchemaFilesCaller(true))
+	serverFlavor.DefMethod(":schema", "", schemaCaller(true))
 }
 
 // ServerFlavor returns the ggql-server-flavor.
@@ -54,8 +62,32 @@ type initCaller bool
 
 func (caller initCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
 	obj := s.Get("self").(*flavors.Instance)
-	obj.Any = &serverWrap{}
-
+	sw := &serverWrap{}
+	obj.Any = sw
+	list := args[0].(slip.List)
+	for i := 0; i < len(list)-1; i += 2 {
+		if sym, ok := list[i].(slip.Symbol); ok {
+			switch string(sym) {
+			case ":schema-files":
+				sw.schema = readFiles(nil, list[i+1])
+				continue
+			case ":schema-stream":
+				var r io.Reader
+				if r, ok = list[i+1].(io.Reader); ok {
+					sw.schema = readStream(r)
+					continue
+				}
+			case ":schema-instance":
+				var top *flavors.Instance
+				if top, ok = list[i+1].(*flavors.Instance); !ok {
+					panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s", list[i+1]))
+				}
+				obj.Set(slip.Symbol("schema-instance"), top)
+				continue
+			}
+		}
+		panic(fmt.Sprintf("%s is not a valid keyword and value", list[i]))
+	}
 	return nil
 }
 
@@ -86,7 +118,10 @@ func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 			panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s",
 				obj.Get(slip.Symbol("schema-instance"))))
 		}
-		sw.makeRoot(top, obj.Get(slip.Symbol("schema-files")))
+		if len(sw.schema) == 0 {
+			panic("schema not yet loaded. Call :set-schema-files or :set-schema-stream first")
+		}
+		sw.makeRoot(top)
 	}
 	sw.mux = http.NewServeMux()
 	path := "/graphql"
@@ -207,21 +242,89 @@ Sets the trace mode and optionally the output stream.
 `
 }
 
-type rerootCaller bool
+type setSchemaFilesCaller bool
 
-func (caller rerootCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+func (caller setSchemaFilesCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
 	obj := s.Get("self").(*flavors.Instance)
 	sw := obj.Any.(*serverWrap)
-	top, ok := obj.Get(slip.Symbol("schema-instance")).(*flavors.Instance)
-	if !ok {
-		panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s",
-			obj.Get(slip.Symbol("schema-instance"))))
-	}
-	sw.makeRoot(top, obj.Get(slip.Symbol("schema-files")))
+	sw.schema = readFiles(nil, args)
 
+	si := obj.Get(slip.Symbol("schema-instance"))
+	if si != nil {
+		top, ok := si.(*flavors.Instance)
+		if !ok {
+			panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s", si))
+		}
+		sw.makeRoot(top)
+	}
 	return nil
 }
 
-func (caller rerootCaller) Docs() string {
-	return `__:after :set-schema-instance__ and __:set-schema-files__`
+func (caller setSchemaFilesCaller) Docs() string {
+	return `__:set-schema-files__ &rest files
+  __files__ filename or glob to use as the schema. A list of filenames and globs is also supported.
+
+Concatenates the contents of the files to for the GraphQL schema for the server.
+`
+}
+
+type setSchemaInstanceCaller bool
+
+func (caller setSchemaInstanceCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+	if len(args) != 1 {
+		panic(fmt.Sprintf(
+			"Method ggql-server-flavor :set-schema-instance method expects at one argument but received %d.",
+			len(args)))
+	}
+	obj := s.Get("self").(*flavors.Instance)
+	sw := obj.Any.(*serverWrap)
+
+	top, ok := args[0].(*flavors.Instance)
+	if !ok {
+		panic(fmt.Sprintf("schema-instance must be an instance of a flavor not %s", args[0]))
+	}
+	obj.Set(slip.Symbol("schema-instance"), top)
+	if 0 < len(sw.schema) {
+		sw.makeRoot(top)
+	}
+	return nil
+}
+
+func (caller setSchemaInstanceCaller) Docs() string {
+	return `__:set-schema-instance__ __instance__
+  __instance__ of a flavor that with respond to the top level GraphQL resolve requests.
+
+Set the top or root level instance for queries. It must respond to :query and optionally :mutation.
+`
+}
+
+type schemaInstanceCaller bool
+
+func (caller schemaInstanceCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+	obj := s.Get("self").(*flavors.Instance)
+	return obj.Get(slip.Symbol("schema-instance"))
+}
+
+func (caller schemaInstanceCaller) Docs() string {
+	return `__:set-schema-instance__ __instance__
+  __instance__ of a flavor that with respond to the top level GraphQL resolve requests.
+
+Set the top or root level instance for queries. It must respond to :query and optionally :mutation.
+`
+}
+
+type schemaCaller bool
+
+func (caller schemaCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
+	obj := s.Get("self").(*flavors.Instance)
+	sw := obj.Any.(*serverWrap)
+
+	return slip.String(sw.schema)
+}
+
+func (caller schemaCaller) Docs() string {
+	return `__:schema__
+
+Returns the schema as a string.
+`
 }

@@ -29,6 +29,7 @@ type serverWrap struct {
 	out      io.Writer
 	root     *ggql.Root
 	mu       sync.Mutex
+	schema   []byte
 	trace    bool
 	detailed bool
 }
@@ -73,12 +74,11 @@ func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (sw *serverWrap) makeRoot(top *flavors.Instance, files slip.Object) {
+func (sw *serverWrap) makeRoot(top *flavors.Instance) {
 	ggql.Sort = true
 	sw.root = ggql.NewRoot(top)
 	sw.root.AnyResolver = sw
-	sdl := readFiles(nil, files)
-	if err := sw.root.Parse(sdl); err != nil {
+	if err := sw.root.Parse(sw.schema); err != nil {
 		panic(err)
 	}
 }
@@ -107,6 +107,14 @@ func readFiles(sdl []byte, files slip.Object) []byte {
 		}
 	default:
 		panic(fmt.Sprintf("GraphQL files must be a string or list not %s", files))
+	}
+	return sdl
+}
+
+func readStream(stream io.Reader) []byte {
+	sdl, err := io.ReadAll(stream)
+	if err != nil {
+		panic(err)
 	}
 	return sdl
 }
@@ -150,7 +158,7 @@ top:
 		method := fmt.Sprintf(":%s", strings.ReplaceAll(field.Name, "_", "-"))
 		switch {
 		case 0 < len(args):
-			s := slip.NewScope()
+			s := to.NewScope()
 			for k, v := range args {
 				s.Vars[k] = coerceToLisp(v)
 			}
@@ -167,7 +175,7 @@ top:
 		return nil, fmt.Errorf("can not resolve %s on a %T\n", field.Name, to)
 	}
 	switch tr := result.(type) {
-	case *flavors.Instance, nil:
+	case *flavors.Instance, nil, slip.List:
 		// ok
 	case slip.Object:
 		result = slip.Simplify(tr)
@@ -179,6 +187,8 @@ top:
 func (sw *serverWrap) Len(list any) int {
 	switch tlist := list.(type) {
 	case []any:
+		return len(tlist)
+	case slip.List:
 		return len(tlist)
 	case []*flavors.Instance:
 		return len(tlist)
@@ -193,6 +203,11 @@ func (sw *serverWrap) Nth(list any, i int) (result any, err error) {
 	}
 	switch tlist := list.(type) {
 	case []any:
+		if len(tlist) <= i {
+			return 0, fmt.Errorf("index must be less than the list length, %d > len %d", i, len(tlist))
+		}
+		return tlist[i], nil
+	case slip.List:
 		if len(tlist) <= i {
 			return 0, fmt.Errorf("index must be less than the list length, %d > len %d", i, len(tlist))
 		}

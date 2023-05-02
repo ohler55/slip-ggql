@@ -16,7 +16,11 @@ import (
 func TestServerAttrs(t *testing.T) {
 	scope := slip.NewScope()
 	scope.Let("server", nil)
-	_ = slip.ReadString(`(setq server (make-instance 'ggql-server-flavor :port 5555 :base "gg"))`).Eval(scope, nil)
+	_ = slip.ReadString(`(setq server
+                               (make-instance 'ggql-server-flavor
+                                              :schema-files "examples/sample.graphql"
+                                              :port 5555
+                                              :base "gg"))`).Eval(scope, nil)
 	(&sliptest.Function{
 		Scope:  scope,
 		Source: `(send server :port)`,
@@ -33,10 +37,14 @@ func TestServerStart(t *testing.T) {
 	// TBD get free port
 	scope := slip.NewScope()
 	scope.Let("server", nil)
-	_ = slip.ReadString(`(setq server
+	_ = slip.ReadString(`(setq
+                           top (make-instance 'vanilla-flavor)
+                           server
                                (make-instance 'ggql-server-flavor
                                               :port 15555
-                                              :asset-directory "testassets"))
+                                              :asset-directory "testassets"
+                                              :schema-instance top
+                                              :schema-files "examples/sample.graphql"))
 `).Eval(scope, nil)
 
 	_ = slip.ReadString(`(send server :start)`).Eval(scope, nil)

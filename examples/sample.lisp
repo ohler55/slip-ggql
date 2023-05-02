@@ -2,7 +2,7 @@
 ;;;; From the slip repo:
 ;;;; go run cmd/slip/main.go -i ../slip-ggql/examples/sample.lisp
 ;;;;
-;;;; The use curls to verify with:
+;;;; The use curl to verify with:
 ;;;; curl -w "\n" "localhost:5555/graphql?query=\{hello\}"
 ;;;;
 ;;;; which should return:
