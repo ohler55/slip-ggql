@@ -174,7 +174,11 @@ top:
 	default:
 		return nil, fmt.Errorf("can not resolve %s on a %T\n", field.Name, to)
 	}
+resultTop:
 	switch tr := result.(type) {
+	case slip.Values:
+		result = tr[0]
+		goto resultTop
 	case *flavors.Instance, nil, slip.List:
 		// ok
 	case slip.Object:

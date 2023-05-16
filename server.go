@@ -150,13 +150,17 @@ func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	go func() { _ = sw.server.ListenAndServe() }()
-
+	if 0 < len(args) && args[0] != nil {
+		_ = sw.server.ListenAndServe()
+	} else {
+		go func() { _ = sw.server.ListenAndServe() }()
+	}
 	return nil
 }
 
 func (caller startCaller) Docs() string {
-	return `__:start__
+	return `__:start__ &optional block
+  _block_ if non-nil will cause the server to not return until stopped.
 
 Starts listening for connection on the _:port_.
 `
