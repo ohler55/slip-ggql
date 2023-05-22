@@ -172,7 +172,7 @@ func (caller stopCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object 
 	obj := s.Get("self").(*flavors.Instance)
 	sw := obj.Any.(*serverWrap)
 	if sw.server != nil {
-		sw.server.Shutdown(context.Background())
+		_ = sw.server.Shutdown(context.Background())
 		sw.server = nil
 	}
 	return nil

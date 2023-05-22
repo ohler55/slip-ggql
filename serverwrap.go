@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -86,7 +86,7 @@ func (sw *serverWrap) makeRoot(top *flavors.Instance) {
 func readFiles(sdl []byte, files slip.Object) []byte {
 	switch tf := files.(type) {
 	case slip.String:
-		if content, err := ioutil.ReadFile(string(tf)); err == nil {
+		if content, err := os.ReadFile(string(tf)); err == nil {
 			sdl = append(sdl, content...)
 		} else {
 			// Maybe it's a glob pattern.
@@ -96,7 +96,7 @@ func readFiles(sdl []byte, files slip.Object) []byte {
 			}
 			for _, path := range matches {
 				var content []byte
-				if content, err = ioutil.ReadFile(path); err == nil {
+				if content, err = os.ReadFile(path); err == nil {
 					sdl = append(sdl, content...)
 				}
 			}
@@ -135,7 +135,7 @@ func (sw *serverWrap) handleGraphQL(w http.ResponseWriter, r *http.Request) {
 		result = sw.root.ResolveString(r.URL.Query().Get("query"), "", nil)
 	case "POST":
 		defer func() { _ = r.Body.Close() }()
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(400)
 			_, _ = w.Write([]byte(err.Error()))
