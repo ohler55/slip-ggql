@@ -162,12 +162,12 @@ top:
 			for k, v := range args {
 				s.Vars[k] = coerceToLisp(v)
 			}
-			result = to.BoundReceive(method, s, 0)
+			result = to.BoundReceive(&to.Scope, method, s, 0)
 		case to.Flavor == bag.Flavor():
 			obj = to.Any
 			goto top
 		default:
-			result = to.Receive(method, slip.List{}, 0)
+			result = to.Receive(&to.Scope, method, slip.List{}, 0)
 		}
 	case map[string]any:
 		result = to[field.Name]
@@ -231,7 +231,7 @@ func coerceToLisp(v any) (obj slip.Object) {
 	case slip.Object:
 		obj = tv
 	case map[string]any:
-		inst := bag.Flavor().MakeInstance()
+		inst := bag.Flavor().MakeInstance().(*flavors.Instance)
 		inst.Any = tv
 		obj = inst
 	case []any:
