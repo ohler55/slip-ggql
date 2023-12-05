@@ -12,14 +12,13 @@ var (
 		Name:      "ggql",
 		Nicknames: []string{},
 		Doc:       "GraphQL package for slip.",
-		Lambdas:   map[string]*slip.Lambda{},
-		Funcs:     map[string]*slip.FuncInfo{},
 		PreSet:    slip.DefaultPreSet,
 		Vars:      map[string]*slip.VarVal{},
 	}
 )
 
 func init() {
+	Pkg.Initialize()
 	slip.AddPackage(&Pkg)
 	slip.UserPkg.Use(&Pkg)
 	Pkg.Set("*ggql*", &Pkg)
