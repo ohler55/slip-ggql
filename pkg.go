@@ -6,19 +6,16 @@ import (
 	"github.com/ohler55/slip"
 )
 
-var (
-	// Pkg is the ggql package.
-	Pkg = slip.Package{
-		Name:      "ggql",
-		Nicknames: []string{},
-		Doc:       "GraphQL package for slip.",
-		PreSet:    slip.DefaultPreSet,
-		Vars:      map[string]*slip.VarVal{},
-	}
-)
+// Pkg is the ggql package.
+var Pkg = slip.Package{
+	Name:      "ggql",
+	Nicknames: []string{},
+	Doc:       "GraphQL package for slip.",
+	PreSet:    slip.DefaultPreSet,
+}
 
 func init() {
-	Pkg.Initialize()
+	Pkg.Initialize(map[string]*slip.VarVal{})
 	slip.AddPackage(&Pkg)
 	slip.UserPkg.Use(&Pkg)
 	Pkg.Set("*ggql*", &Pkg)
