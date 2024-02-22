@@ -1,5 +1,5 @@
-github.com/ohler55/ojg v1.21.0 h1:niqSS6yl3PQZJrqh7pKs/zinl4HebGe8urXEfpvlpYY=
-github.com/ohler55/ojg v1.21.0/go.mod h1:gQhDVpQLqrmnd2eqGAvJtn+NfKoYJbe/A4Sj3/Vro4o=
+github.com/ohler55/ojg v1.21.3 h1:0smW0EKpyPBBIpTKhM+UbCDeQFbR0oEUxym+rFv2Y/8=
+github.com/ohler55/ojg v1.21.3/go.mod h1:gQhDVpQLqrmnd2eqGAvJtn+NfKoYJbe/A4Sj3/Vro4o=
 github.com/uhn/ggql v1.2.14 h1:ymFvAWwkmv/ZYwG42hy7oQKBjlxvIB8O2O1ph/ysJIA=
 github.com/uhn/ggql v1.2.14/go.mod h1:UYEZ2yENqwPJv1uGUR53d/61RGYzGMe6NxkQuL3aluM=
 golang.org/x/text v0.14.0 h1:ScX5w1eTa3QqT8oi6+ziP7dTV1S2+ALU0bI+0zXKWiQ=
