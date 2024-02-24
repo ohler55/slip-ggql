@@ -16,6 +16,7 @@ import (
 var serverFlavor *flavors.Flavor
 
 func init() {
+	Pkg.Initialize(nil)
 	serverFlavor = flavors.DefFlavor("ggql-server-flavor",
 		map[string]slip.Object{
 			"port":            nil,
@@ -41,6 +42,7 @@ The root resolver will also resolve data held in a __bag__ instance.
 				slip.Symbol(":schema-stream"),
 			},
 		},
+		&Pkg,
 	)
 	serverFlavor.DefMethod(":init", "", initCaller(true))
 	serverFlavor.DefMethod(":start", "", startCaller(true))
