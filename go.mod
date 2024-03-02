@@ -3,7 +3,7 @@ module github.com/ohler55/slip-ggql
 go 1.22
 
 require (
-	github.com/ohler55/ojg v1.21.3
+	github.com/ohler55/ojg v1.21.4
 	github.com/ohler55/slip v0.5.0
 	github.com/uhn/ggql v1.2.14
 )
