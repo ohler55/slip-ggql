@@ -8,9 +8,9 @@ lint:
 	golangci-lint run
 
 build:
-	go build -buildmode=plugin -o ggql.so *.go
+	go build -buildmode=plugin -o ggql.so ./...
 
-test: lint
-	go test -coverprofile=cov.out
+test: lint build
+	go test -coverprofile=cov.out ./...
 
 .PHONY: all build
