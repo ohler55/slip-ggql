@@ -1,6 +1,6 @@
 // Copyright (c) 2023, Peter Ohler, All rights reserved.
 
-package main_test
+package slipggql_test
 
 import (
 	"io"

@@ -1,6 +1,6 @@
 // Copyright (c) 2023, Peter Ohler, All rights reserved.
 
-package main
+package slipggql
 
 import (
 	"github.com/ohler55/slip"
