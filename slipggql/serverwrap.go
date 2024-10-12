@@ -163,7 +163,7 @@ top:
 				s.Vars[k] = coerceToLisp(v)
 			}
 			result = to.BoundReceive(&to.Scope, method, s, 0)
-		case to.Flavor == bag.Flavor():
+		case to.Type == bag.Flavor():
 			obj = to.Any
 			goto top
 		default:
