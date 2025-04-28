@@ -20,7 +20,7 @@ func TestServerAttrs(t *testing.T) {
                                (make-instance 'ggql-server-flavor
                                               :schema-files "examples/sample.graphql"
                                               :port 5555
-                                              :base "gg"))`).Eval(scope, nil)
+                                              :base "gg"))`, scope).Eval(scope, nil)
 	(&sliptest.Function{
 		Scope:  scope,
 		Source: `(send server :port)`,
@@ -45,9 +45,9 @@ func TestServerStart(t *testing.T) {
                                               :asset-directory "testassets"
                                               :schema-instance top
                                               :schema-files "examples/sample.graphql"))
-`).Eval(scope, nil)
+`, scope).Eval(scope, nil)
 
-	_ = slip.ReadString(`(send server :start)`).Eval(scope, nil)
+	_ = slip.ReadString(`(send server :start)`, scope).Eval(scope, nil)
 	for i := 10; 0 < i; i-- {
 		if _, err := http.Get("http://localhost:15555/sample.text"); err == nil {
 			break
@@ -56,11 +56,11 @@ func TestServerStart(t *testing.T) {
 	}
 	resp, err := http.Get("http://localhost:15555/sample.text")
 	tt.Nil(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	tt.Equal(t, 200, resp.StatusCode)
 	var body []byte
 	body, err = io.ReadAll(resp.Body)
 	tt.Nil(t, err)
-	_ = slip.ReadString(`(send server :stop)`).Eval(scope, nil)
+	_ = slip.ReadString(`(send server :stop)`, scope).Eval(scope, nil)
 	tt.Equal(t, "This is a sample file.\n", string(body))
 }

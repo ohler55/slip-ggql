@@ -43,10 +43,10 @@ func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			if !sw.trace {
-				fmt.Fprintf(tw, "%v\n", rec)
+				_, _ = fmt.Fprintf(tw, "%v\n", rec)
 			}
 			w.WriteHeader(400)
-			fmt.Fprintf(w, "%v\n", rec)
+			_, _ = fmt.Fprintf(w, "%v\n", rec)
 		}
 	}()
 	if !sw.trace {
@@ -55,9 +55,9 @@ func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
-	fmt.Fprintf(tw, "Received %s %s from %s\n", r.Method, r.URL.Path, r.RemoteAddr)
+	_, _ = fmt.Fprintf(tw, "Received %s %s from %s\n", r.Method, r.URL.Path, r.RemoteAddr)
 	if sw.detailed {
-		fmt.Fprintln(tw, pretty.SEN(alt.Decompose(r, traceOptions)))
+		_, _ = fmt.Fprintln(tw, pretty.SEN(alt.Decompose(r, traceOptions)))
 	}
 	sw.mu.Unlock()
 	rt := responseTracer{
@@ -67,10 +67,10 @@ func (sw *serverWrap) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sw.mux.ServeHTTP(&rt, r)
 	sw.mu.Lock()
-	fmt.Fprintf(tw, "Replied to %s with a %d status\n", r.RemoteAddr, rt.status)
+	_, _ = fmt.Fprintf(tw, "Replied to %s with a %d status\n", r.RemoteAddr, rt.status)
 	if sw.detailed {
-		fmt.Fprintf(tw, "headers: %s\n", pretty.SEN(w.Header()))
-		fmt.Fprintf(tw, "%s\n", rt.sent)
+		_, _ = fmt.Fprintf(tw, "headers: %s\n", pretty.SEN(w.Header()))
+		_, _ = fmt.Fprintf(tw, "%s\n", rt.sent)
 	}
 }
 
@@ -172,7 +172,7 @@ top:
 	case map[string]any:
 		result = to[field.Name]
 	default:
-		return nil, fmt.Errorf("can not resolve %s on a %T\n", field.Name, to)
+		return nil, fmt.Errorf("can not resolve %s on a %T", field.Name, to)
 	}
 resultTop:
 	switch tr := result.(type) {
