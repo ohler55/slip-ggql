@@ -93,10 +93,6 @@ func (caller initCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object 
 	return nil
 }
 
-func (caller initCaller) Docs() string {
-	return `__:init__`
-}
-
 type startCaller bool
 
 func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object {
