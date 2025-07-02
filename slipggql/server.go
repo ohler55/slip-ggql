@@ -93,8 +93,29 @@ func (caller initCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object 
 	return nil
 }
 
-func (caller initCaller) Docs() string {
-	return `__:init__`
+func (caller initCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":init",
+		Text: "Sets the initial value when _make-instance_ is called.",
+		Args: []*slip.DocArg{
+			{Name: "&key"},
+			{
+				Name: ":schema-files",
+				Type: "list",
+				Text: "Schema files to load.",
+			},
+			{
+				Name: ":schema-stream",
+				Type: "input-stream",
+				Text: "Stream to read the schema from.",
+			},
+			{
+				Name: ":schema-instance",
+				Type: "instance",
+				Text: "Instance to use as the schema.",
+			},
+		},
+	}
 }
 
 type startCaller bool
@@ -160,12 +181,19 @@ func (caller startCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 	return nil
 }
 
-func (caller startCaller) Docs() string {
-	return `__:start__ &optional block
-  _block_ if non-nil will cause the server to not return until stopped.
-
-Starts listening for connection on the _:port_.
-`
+func (caller startCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":start",
+		Text: "Starts listening for connection on the _:port_",
+		Args: []*slip.DocArg{
+			{Name: "&optional"},
+			{
+				Name: "block",
+				Type: "boolean",
+				Text: "If non-nil will cause the server to not return until stopped.",
+			},
+		},
+	}
 }
 
 type stopCaller bool
@@ -180,11 +208,11 @@ func (caller stopCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object 
 	return nil
 }
 
-func (caller stopCaller) Docs() string {
-	return `__:stop__
-
-Stops listening for connection.
-`
+func (caller stopCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":stop",
+		Text: "Stops listening for connection.",
+	}
 }
 
 type activepCaller bool
@@ -198,11 +226,12 @@ func (caller activepCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Obje
 	return nil
 }
 
-func (caller activepCaller) Docs() string {
-	return `__:activep__
-
-Returns _t_ if the server is listening for connections.
-`
+func (caller activepCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name:   ":activep",
+		Text:   "Returns _t_ if the server is listening for connections.",
+		Return: "boolean",
+	}
 }
 
 type traceCaller bool
@@ -239,13 +268,25 @@ func (caller traceCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Object
 	return nil
 }
 
-func (caller traceCaller) Docs() string {
-	return `__:trace__ __mode__ &optional __stream__
-  __mode__ is the trace level _nil_ to turn off tracing, _t_ to turn on basic tracing, and _:detailed_ for much more detail.
-  __stream__ if _nil_ then trace output is to _*standard-output*_ else to the provided _output-stream_.
-
-Sets the trace mode and optionally the output stream.
-`
+func (caller traceCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":trace",
+		Text: "Sets the trace mode and optionally the output stream.",
+		Args: []*slip.DocArg{
+			{
+				Name: "mode",
+				Type: "boolean|:detailed",
+				Text: `The trace level _nil_ to turn off tracing, _t_ to turn on basic tracing,
+and _:detailed_ for much more detail.`,
+			},
+			{Name: "&optional"},
+			{
+				Name: "stream",
+				Type: "output-stream",
+				Text: "If _nil_ then trace output is to _*standard-output*_ else to the provided _output-stream_.",
+			},
+		},
+	}
 }
 
 type setSchemaFilesCaller bool
@@ -266,12 +307,19 @@ func (caller setSchemaFilesCaller) Call(s *slip.Scope, args slip.List, _ int) sl
 	return nil
 }
 
-func (caller setSchemaFilesCaller) Docs() string {
-	return `__:set-schema-files__ &rest files
-  __files__ filename or glob to use as the schema. A list of filenames and globs is also supported.
-
-Concatenates the contents of the files to for the GraphQL schema for the server.
-`
+func (caller setSchemaFilesCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":set-schema-files",
+		Text: "Concatenates the contents of the files to for the GraphQL schema for the server.",
+		Args: []*slip.DocArg{
+			{Name: "&rest"},
+			{
+				Name: "files",
+				Type: "string",
+				Text: "Filename or glob to use as the schema. A list of filenames and globs is also supported.",
+			},
+		},
+	}
 }
 
 type setSchemaInstanceCaller bool
@@ -296,12 +344,18 @@ func (caller setSchemaInstanceCaller) Call(s *slip.Scope, args slip.List, _ int)
 	return nil
 }
 
-func (caller setSchemaInstanceCaller) Docs() string {
-	return `__:set-schema-instance__ __instance__
-  __instance__ of a flavor that with respond to the top level GraphQL resolve requests.
-
-Set the top or root level instance for queries. It must respond to :query and optionally :mutation.
-`
+func (caller setSchemaInstanceCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name: ":set-schema-instance",
+		Text: "Set the top or root level instance for queries. It must respond to :query and optionally :mutation.",
+		Args: []*slip.DocArg{
+			{
+				Name: "instance",
+				Type: "instance",
+				Text: "Must respond to the top level GraphQL resolve requests.",
+			},
+		},
+	}
 }
 
 type schemaInstanceCaller bool
@@ -311,12 +365,12 @@ func (caller schemaInstanceCaller) Call(s *slip.Scope, args slip.List, _ int) sl
 	return obj.Get(slip.Symbol("schema-instance"))
 }
 
-func (caller schemaInstanceCaller) Docs() string {
-	return `__:set-schema-instance__ __instance__
-  __instance__ of a flavor that with respond to the top level GraphQL resolve requests.
-
-Set the top or root level instance for queries. It must respond to :query and optionally :mutation.
-`
+func (caller schemaInstanceCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name:   ":schema-instance",
+		Text:   "Return root instance if one is in use.",
+		Return: "instance",
+	}
 }
 
 type schemaCaller bool
@@ -328,9 +382,10 @@ func (caller schemaCaller) Call(s *slip.Scope, args slip.List, _ int) slip.Objec
 	return slip.String(sw.schema)
 }
 
-func (caller schemaCaller) Docs() string {
-	return `__:schema__
-
-Returns the schema as a string.
-`
+func (caller schemaCaller) FuncDocs() *slip.FuncDoc {
+	return &slip.FuncDoc{
+		Name:   ":schema",
+		Text:   "Return the schema as a string.",
+		Return: "string",
+	}
 }
