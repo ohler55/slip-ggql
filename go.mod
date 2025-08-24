@@ -1,9 +1,9 @@
 module github.com/ohler55/slip-ggql
 
-go 1.24
+go 1.25
 
 require (
-	github.com/ohler55/ojg v1.26.8
+	github.com/ohler55/ojg v1.26.9
 	github.com/ohler55/slip v1.1.0
 	github.com/uhn/ggql v1.2.14
 )
