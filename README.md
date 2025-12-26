@@ -1,14 +1,16 @@
 # slip-ggql
 
-A Graphql plug-in for SLIP.
+A GraphQL plug-in for SLIP.
+
+This plugin provides a server that use [GGql](https://github.com/uhn/ggql).
 
 -------------
 
-- make song example
- - use for tests as well
+## Future Plans
 
-- schema
- - load immediatetly into a []byte
- - add ability to provide schema as a string, maybe as a stream?
-  - :schema-input or :schema-stream
- - only re-root if not :init and schema instance is not nil
+ - Add and example such as the song example from ggql.
+ - Add tests making use of the song example.
+
+ - Optimize schema loading by immediatetly into a []byte.
+ - Add ability to provide schema as a string or a stream with :schema-input and :schema-stream options.
+ - Only re-root if not :init and schema instance is not nil

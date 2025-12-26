@@ -310,7 +310,7 @@ func (caller setSchemaFilesCaller) Call(s *slip.Scope, args slip.List, _ int) sl
 func (caller setSchemaFilesCaller) FuncDocs() *slip.FuncDoc {
 	return &slip.FuncDoc{
 		Name: ":set-schema-files",
-		Text: "Concatenates the contents of the files to for the GraphQL schema for the server.",
+		Text: "Concatenates the contents of the files to the GraphQL schema for the server.",
 		Args: []*slip.DocArg{
 			{Name: "&rest"},
 			{
