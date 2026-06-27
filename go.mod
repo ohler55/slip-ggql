@@ -4,11 +4,11 @@ go 1.26
 
 require (
 	github.com/ohler55/ojg v1.28.1
-	github.com/ohler55/slip v1.4.1
+	github.com/ohler55/slip v1.5.0
 	github.com/uhn/ggql v1.2.14
 )
 
-replace github.com/ohler55/slip => ../slip
+// replace github.com/ohler55/slip => ../slip
 
 require (
 	golang.org/x/sys v0.35.0 // indirect
